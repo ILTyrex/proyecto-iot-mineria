@@ -6,3 +6,8 @@ pydantic
 pydantic-settings
 python-dotenv
 email-validator
+streamlit
+pandas
+matplotlib
+seaborn
+scikit-learn

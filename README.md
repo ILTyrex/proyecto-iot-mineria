@@ -144,6 +144,20 @@ Desde Python, usar `psycopg2`/`SQLAlchemy` con la misma cadena de
 conexión de `DATABASE_URL` en `app/core/config.py`, o consumir el
 endpoint `GET /api/lecturas/` de la API con filtros de fecha y rango.
 
+La aplicación completa de EDA está en `streamlit_app/eda_app.py`. Lee
+directamente la tabla `lecturas` de PostgreSQL/TimescaleDB y permite filtrar
+por fechas, dispositivo, variables y rangos de valores. También incluye
+limpieza física, detección de outliers IQR, histogramas, series temporales,
+correlación y dos modelos de predicción (regresión lineal y bosque aleatorio).
+
+Para ejecutarla, configura las variables `DB_USER`, `DB_PASSWORD`, `DB_HOST`,
+`DB_PORT`, `DB_NAME` y `DB_SSLMODE` en el entorno o en
+`.streamlit/secrets.toml`, instala `requirements.txt` y ejecuta:
+
+```bash
+streamlit run streamlit_app/eda_app.py
+```
+
 ## 9. Seguridad (nivel parcial)
 
 El endpoint `POST /api/lecturas/` exige el header `X-API-Key` para
