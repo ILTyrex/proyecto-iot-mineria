@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: calidad_aire_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: calidad_aire_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init_db:/docker-entrypoint-initdb.d
+
+  api:
+    build: .
+    container_name: calidad_aire_api
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: calidad_aire_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      API_KEY: clave-secreta-esp32-2026
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

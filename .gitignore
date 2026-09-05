@@ -1,0 +1,44 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Variables de entorno y credenciales (NUNCA subir esto)
+.env
+.env.local
+*.env
+
+# Bases de datos locales / dumps
+*.sqlite3
+*.db
+*.sql.bak
+
+# Distribución / build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs
+*.log
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+
+# Coverage / tests
+.coverage
+htmlcov/
+.pytest_cache/

@@ -1,0 +1,57 @@
+/*
+  FRAGMENTO PARA AGREGAR AL SKETCH DEL ESP32
+  (el que ya tienen, con DHT22 + MQ-135 + LCD + WiFi)
+
+  Esto es lo que reemplaza el comentario:
+  "// Aquí, más adelante, se llamará a la función que envíe
+  //  (temperatura, humedad, co2ppm, nivel) a la API REST."
+
+  Instrucciones:
+  1) Instala la librería "ArduinoJson" desde el Library Manager.
+  2) Agrega el #include <HTTPClient.h> y <ArduinoJson.h> arriba del todo.
+  3) Ajusta API_URL con la IP/dominio donde corre la API (ver README del proyecto).
+  4) Ajusta API_KEY para que coincida con el valor de API_KEY en el archivo .env de la API.
+  5) Ajusta CODIGO_DISPOSITIVO para que coincida con el "codigo" que registraste
+     en la tabla "dispositivos" (por defecto: "ESP32-G3").
+  6) Llama a enviarLecturaAPI(temperatura, humedad, co2ppm) dentro del loop(),
+     justo después de mostrarEnLCD(...) y gestionarAlerta(...).
+*/
+
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+const char* API_URL              = "http://TU_IP_O_DOMINIO:8000/api/lecturas/";
+const char* API_KEY               = "clave-secreta-esp32-2026";
+const char* CODIGO_DISPOSITIVO    = "ESP32-G3";
+
+void enviarLecturaAPI(float temperatura, float humedad, float co2ppm) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("No se puede enviar: WiFi desconectado");
+    return;
+  }
+
+  HTTPClient http;
+  http.begin(API_URL);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-API-Key", API_KEY);
+
+  StaticJsonDocument<256> doc;
+  doc["codigo_dispositivo"] = CODIGO_DISPOSITIVO;
+  doc["temperatura"] = temperatura;
+  doc["humedad"] = humedad;
+  doc["co2_ppm"] = co2ppm;
+
+  String payload;
+  serializeJson(doc, payload);
+
+  int codigoRespuesta = http.POST(payload);
+
+  if (codigoRespuesta > 0) {
+    Serial.printf("POST /api/lecturas -> HTTP %d\n", codigoRespuesta);
+    Serial.println(http.getString());
+  } else {
+    Serial.printf("Error al enviar a la API: %s\n", http.errorToString(codigoRespuesta).c_str());
+  }
+
+  http.end();
+}

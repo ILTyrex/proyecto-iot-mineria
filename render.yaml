@@ -1,0 +1,21 @@
+# Blueprint de Render: permite hacer "New -> Blueprint" en Render,
+# apuntar a este repo/carpeta y que cree el servicio automáticamente.
+services:
+  - type: web
+    name: calidad-aire-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: API_KEY
+        sync: false
