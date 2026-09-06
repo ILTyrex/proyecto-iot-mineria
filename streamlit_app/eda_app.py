@@ -156,8 +156,8 @@ def train_models(data: pd.DataFrame, target: str) -> None:
             "R²": r2_score(y_test, prediction),
         })
     st.dataframe(
-        pd.DataFrame(results).style.format({"MAE": "%.2f", "RMSE": "%.2f", "R²": "%.3f"}),
-        use_container_width=True,
+    pd.DataFrame(results).style.format({"MAE": "{:.2f}", "RMSE": "{:.2f}", "R²": "{:.3f}"}),
+    use_container_width=True,
     )
     st.caption(f"Objetivo: {VARIABLE_LABELS[target]}. División temporal: {len(x_train)} entrenamiento / {len(x_test)} prueba.")
     st.line_chart(predictions, y_label=VARIABLE_LABELS[target], x_label="Índice de prueba")
@@ -264,7 +264,7 @@ with tab_correlation:
     axis.set_title("Correlación entre variables de sensores")
     st.pyplot(figure, use_container_width=True)
     plt.close(figure)
-    st.dataframe(correlation.style.format("%.3f"), use_container_width=True)
+    st.dataframe(correlation.style.format("{:.3f}"), use_container_width=True)
 
 with tab_ml:
     st.subheader("Predicción de variables")
