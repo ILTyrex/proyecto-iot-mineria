@@ -2,6 +2,8 @@
 Punto de entrada de la API.
 Arquitectura: routers -> services -> repositories -> models (ORM)
 """
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,6 +11,12 @@ from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import *  # noqa: F401,F403  (registra todos los modelos en Base.metadata)
 from app.routers import dispositivos, sensores, lecturas, alertas
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 

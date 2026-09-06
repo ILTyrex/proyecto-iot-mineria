@@ -223,8 +223,13 @@ with st.sidebar:
                 value=(minimum, maximum),
             )
 
-if isinstance(selected_dates, tuple) and len(selected_dates) == 2:
-    start_date, end_date = selected_dates
+if isinstance(selected_dates, tuple):
+    if len(selected_dates) == 2:
+        start_date, end_date = selected_dates
+    elif len(selected_dates) == 1:
+        start_date = end_date = selected_dates[0]
+    else:
+        start_date, end_date = min_date, max_date
 else:
     start_date = end_date = selected_dates
 filtered_data = cleaned_data[

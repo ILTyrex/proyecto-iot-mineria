@@ -5,6 +5,8 @@ Servicio con la lógica de negocio principal:
   - Genera una alerta automática si la calidad es "Mala" o "Peligrosa".
   - Deja un registro en la bitácora (logs_sistema).
 """
+import logging
+
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
@@ -13,6 +15,8 @@ from app.models.alerta import Alerta
 from app.models.log_sistema import LogSistema
 from app.repositories.dispositivo_repository import DispositivoRepository
 from app.repositories.lectura_repository import LecturaRepository
+
+logger = logging.getLogger("app.lecturas")
 
 NIVELES_CRITICOS = ("Mala", "Peligrosa")
 
@@ -35,13 +39,20 @@ class LecturaService:
         return nivel
 
     def registrar_lectura(self, codigo_dispositivo: str, temperatura: float, humedad: float, co2_ppm: float):
+        logger.info(
+            "📡 Datos recibidos del dispositivo '%s' -> Temp=%.1f°C Hum=%.1f%% CO2=%.0fppm",
+            codigo_dispositivo, temperatura, humedad, co2_ppm,
+        )
+
         dispositivo = self.dispositivo_repo.get_by_codigo(codigo_dispositivo)
         if not dispositivo:
+            logger.warning("❌ Dispositivo '%s' no está registrado en el sistema", codigo_dispositivo)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Dispositivo '{codigo_dispositivo}' no está registrado en el sistema",
             )
         if not dispositivo.activo:
+            logger.warning("❌ Dispositivo '%s' está inactivo, se descarta la lectura", codigo_dispositivo)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"El dispositivo '{codigo_dispositivo}' está inactivo",
@@ -74,4 +85,15 @@ class LecturaService:
         self.db.add(log)
         self.db.commit()
         self.db.refresh(lectura)
+
+        logger.info(
+            "✅ Lectura #%s registrada correctamente (dispositivo='%s', nivel='%s')",
+            lectura.id, codigo_dispositivo, nivel.nombre if nivel else "Sin clasificar",
+        )
+        if nivel and nivel.nombre in NIVELES_CRITICOS:
+            logger.warning(
+                "🚨 Alerta generada para dispositivo '%s': calidad del aire %s (%.0f ppm)",
+                codigo_dispositivo, nivel.nombre, co2_ppm,
+            )
+
         return lectura
