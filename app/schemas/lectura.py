@@ -18,6 +18,7 @@ class LecturaCreate(BaseModel):
 class LecturaOut(BaseModel):
     id: int
     dispositivo_id: int
+    dispositivo: Optional[str] = None
     temperatura: float
     humedad: float
     co2_ppm: float

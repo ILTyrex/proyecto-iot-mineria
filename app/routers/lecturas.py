@@ -16,6 +16,7 @@ def _a_schema(lectura) -> LecturaOut:
     return LecturaOut(
         id=lectura.id,
         dispositivo_id=lectura.dispositivo_id,
+        dispositivo=lectura.dispositivo.codigo if lectura.dispositivo else None,
         temperatura=lectura.temperatura,
         humedad=lectura.humedad,
         co2_ppm=lectura.co2_ppm,

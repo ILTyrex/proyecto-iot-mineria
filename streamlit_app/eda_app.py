@@ -1,13 +1,12 @@
 import os
 from pathlib import Path
-from urllib.parse import quote_plus
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import requests
 import seaborn as sns
 import streamlit as st
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error
@@ -35,49 +34,43 @@ def setting(name: str, default: str | None = None) -> str | None:
         return default
 
 
-def database_url() -> str:
-    service_url = setting("TIMESCALE_SERVICE_URL")
-    if service_url:
-        if service_url.startswith("postgres://"):
-            return "postgresql+psycopg://" + service_url.removeprefix("postgres://")
-        if service_url.startswith("postgresql://"):
-            return "postgresql+psycopg://" + service_url.removeprefix("postgresql://")
-        return service_url
-
-    user = setting("DB_USER", "postgres")
-    password = setting("DB_PASSWORD", "postgres")
-    host = setting("DB_HOST", "localhost")
-    port = setting("DB_PORT", "5432")
-    name = setting("DB_NAME", "calidad_aire_db")
-    sslmode = setting("DB_SSLMODE", "prefer")
-    return (
-        f"postgresql+psycopg://{quote_plus(str(user))}:{quote_plus(str(password))}"
-        f"@{host}:{port}/{name}?sslmode={sslmode}"
-    )
+def api_url() -> str:
+    return setting("API_URL", "http://localhost:8000").rstrip("/")
 
 
 @st.cache_data(ttl=60, show_spinner=False)
 def load_data() -> pd.DataFrame:
-    query = text(
-        """
-        SELECT l.timestamp, l.temperatura, l.humedad, l.co2_ppm,
-               COALESCE(n.nombre, 'Sin clasificar') AS nivel_calidad,
-               d.codigo AS dispositivo, d.ubicacion
-        FROM lecturas AS l
-        LEFT JOIN niveles_calidad_aire AS n ON n.id = l.nivel_calidad_id
-        LEFT JOIN dispositivos AS d ON d.id = l.dispositivo_id
-        ORDER BY l.timestamp
-        """
+    rows: list[dict] = []
+    skip = 0
+    page_size = 1000
+    endpoint = f"{api_url()}/api/lecturas/"
+    while True:
+        response = requests.get(
+            endpoint,
+            params={"skip": skip, "limit": page_size},
+            timeout=30,
+        )
+        response.raise_for_status()
+        page = response.json()
+        rows.extend(page)
+        if len(page) < page_size:
+            break
+        skip += page_size
+
+    data = pd.DataFrame(
+        rows,
+        columns=[
+            "timestamp",
+            *NUMERIC_COLUMNS,
+            "nivel_calidad",
+            "dispositivo",
+            "ubicacion",
+        ],
     )
-    engine = create_engine(database_url(), pool_pre_ping=True)
-    try:
-        data = pd.read_sql(query, engine)
-    finally:
-        engine.dispose()
     data["timestamp"] = pd.to_datetime(data["timestamp"], errors="coerce", utc=True)
     for column in NUMERIC_COLUMNS:
         data[column] = pd.to_numeric(data[column], errors="coerce")
-    return data.dropna(subset=["timestamp"])
+    return data.sort_values("timestamp").dropna(subset=["timestamp"])
 
 
 def clean_data(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -164,12 +157,12 @@ def train_models(data: pd.DataFrame, target: str) -> None:
 
 
 st.title("Análisis Exploratorio | Calidad de aire y humedad")
-st.caption("Histórico de sensores IoT conectado directamente a PostgreSQL/TimescaleDB")
+st.caption("Histórico de sensores IoT consultado a través de la API")
 
 try:
     raw_data = load_data()
 except Exception as error:
-    st.error("No fue posible consultar PostgreSQL. Revisa las variables DB_* y que la base esté disponible.")
+    st.error("No fue posible consultar la API. Revisa API_URL y que el servicio esté disponible.")
     st.exception(error)
     st.stop()
 

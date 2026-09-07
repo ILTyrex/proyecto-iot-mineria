@@ -26,7 +26,10 @@ class LecturaRepository(BaseRepository[Lectura]):
     ) -> List[Lectura]:
         query = (
             self.db.query(Lectura)
-            .options(joinedload(Lectura.nivel_calidad))
+            .options(
+                joinedload(Lectura.nivel_calidad),
+                joinedload(Lectura.dispositivo),
+            )
             .join(Dispositivo, Lectura.dispositivo_id == Dispositivo.id)
         )
 

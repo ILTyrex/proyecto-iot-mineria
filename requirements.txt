@@ -5,6 +5,7 @@ psycopg[binary]
 pydantic
 pydantic-settings
 python-dotenv
+requests
 email-validator
 streamlit
 pandas
