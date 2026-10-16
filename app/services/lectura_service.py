@@ -13,6 +13,7 @@ from fastapi import HTTPException, status
 from app.models.nivel_calidad import NivelCalidadAire
 from app.models.alerta import Alerta
 from app.models.log_sistema import LogSistema
+from app.models.tipo_alerta import TipoAlerta
 from app.repositories.dispositivo_repository import DispositivoRepository
 from app.repositories.lectura_repository import LecturaRepository
 
@@ -59,6 +60,22 @@ class LecturaService:
             )
 
         nivel = self._clasificar_nivel(co2_ppm)
+        tipo_alerta = None
+        if nivel and nivel.nombre in NIVELES_CRITICOS:
+            tipo_alerta = (
+                self.db.query(TipoAlerta)
+                .filter(TipoAlerta.nombre == f"Calidad {nivel.nombre}")
+                .one_or_none()
+            )
+            if not tipo_alerta:
+                logger.error(
+                    "No existe el tipo de alerta 'Calidad %s' en el catálogo",
+                    nivel.nombre,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"No está configurado el tipo de alerta para calidad {nivel.nombre}",
+                )
 
         lectura = self.lectura_repo.create({
             "dispositivo_id": dispositivo.id,
@@ -68,11 +85,11 @@ class LecturaService:
             "nivel_calidad_id": nivel.id if nivel else None,
         })
 
-        if nivel and nivel.nombre in NIVELES_CRITICOS:
+        if nivel and nivel.nombre in NIVELES_CRITICOS and tipo_alerta:
             alerta = Alerta(
                 lectura_id=lectura.id,
                 lectura_timestamp=lectura.timestamp,
-                tipo_alerta="calidad_aire",
+                tipo_alerta_id=tipo_alerta.id,
                 mensaje=f"Nivel de calidad del aire: {nivel.nombre} ({co2_ppm:.0f} ppm)",
             )
             self.db.add(alerta)

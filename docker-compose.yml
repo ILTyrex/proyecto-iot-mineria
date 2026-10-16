@@ -11,8 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init_db/01_extension.sql:/docker-entrypoint-initdb.d/01_extension.sql:ro
-      - ./init_db/02_hypertable_y_seed.sql:/scripts/02_hypertable_y_seed.sql:ro
+      - ./init_db/schema_completo.sql:/docker-entrypoint-initdb.d/01_schema_completo.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d calidad_aire_db"]
       interval: 5s

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKeyConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -12,20 +12,20 @@ class Alerta(Base):
     primaria compuesta (id, timestamp) de "lecturas".
     """
     __tablename__ = "alertas"
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["lectura_id", "lectura_timestamp"],
-            ["lecturas.id", "lecturas.timestamp"],
-        ),
-    )
 
     id = Column(Integer, primary_key=True, index=True)
     lectura_id = Column(Integer, nullable=False)
     lectura_timestamp = Column(DateTime(timezone=True), nullable=False)
+    tipo_alerta_id = Column(Integer, ForeignKey("tipos_alerta.id"), nullable=False)
 
-    tipo_alerta = Column(String(50), nullable=False)
     mensaje = Column(String(255), nullable=False)
     atendida = Column(Boolean, default=False, nullable=False)
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
 
-    lectura = relationship("Lectura", back_populates="alertas")
+    lectura = relationship(
+        "Lectura",
+        primaryjoin="and_(Alerta.lectura_id == Lectura.id, Alerta.lectura_timestamp == Lectura.timestamp)",
+        foreign_keys="[Alerta.lectura_id, Alerta.lectura_timestamp]",
+        back_populates="alertas",
+    )
+    tipo = relationship("TipoAlerta", back_populates="alertas")

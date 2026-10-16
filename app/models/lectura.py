@@ -10,7 +10,7 @@ class Lectura(Base):
     Lectura periódica enviada por el ESP32 (DHT22 + MQ-135).
     Esta tabla se convierte en "hypertable" de TimescaleDB usando la
     columna "timestamp" como columna de particionamiento (ver
-    init_db/02_hypertable_y_seed.sql). Por eso la llave primaria es
+    init_db/schema_completo.sql). Por eso la llave primaria es
     compuesta (id, timestamp): TimescaleDB exige que toda llave
     primaria/única incluya la columna de tiempo.
     """
@@ -28,4 +28,9 @@ class Lectura(Base):
 
     dispositivo = relationship("Dispositivo", back_populates="lecturas")
     nivel_calidad = relationship("NivelCalidadAire", back_populates="lecturas")
-    alertas = relationship("Alerta", back_populates="lectura")
+    alertas = relationship(
+        "Alerta",
+        primaryjoin="and_(Lectura.id == Alerta.lectura_id, Lectura.timestamp == Alerta.lectura_timestamp)",
+        foreign_keys="[Alerta.lectura_id, Alerta.lectura_timestamp]",
+        back_populates="lectura",
+    )
