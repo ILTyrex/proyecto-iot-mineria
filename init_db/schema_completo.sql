@@ -6,7 +6,8 @@
 -- Si ya tienen tablas viejas, descomenten esto para empezar limpio
 -- (BORRA TODOS LOS DATOS):
 -- DROP TABLE IF EXISTS alertas, logs_sistema, lecturas, dispositivo_sensores,
---   dispositivos, sensores, niveles_calidad_aire, tipos_alerta, ubicaciones, usuarios CASCADE;
+--   dispositivos, sensores, niveles_calidad_aire, tipos_alerta, ubicaciones,
+--   usuarios, mensajes_conversacion, conversaciones CASCADE;
 
 -- 1) Extensión
 CREATE EXTENSION IF NOT EXISTS timescaledb;
@@ -52,6 +53,22 @@ CREATE TABLE usuarios (
     activo         BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_registro TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE TABLE conversaciones (
+    id         VARCHAR(32) PRIMARY KEY,
+    creada_en  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE mensajes_conversacion (
+    id              SERIAL PRIMARY KEY,
+    conversacion_id VARCHAR(32) NOT NULL REFERENCES conversaciones(id),
+    role            VARCHAR(20) NOT NULL,
+    content         TEXT NOT NULL,
+    creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_mensajes_conversacion_role CHECK (role IN ('user', 'assistant'))
+);
+CREATE INDEX ix_mensajes_conversacion_conversacion_id
+    ON mensajes_conversacion (conversacion_id);
 
 -- 3) Dispositivos y su relación con sensores
 CREATE TABLE dispositivos (

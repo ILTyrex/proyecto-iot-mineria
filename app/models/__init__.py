@@ -10,6 +10,8 @@ from app.models.lectura import Lectura
 from app.models.alerta import Alerta
 from app.models.usuario import Usuario
 from app.models.log_sistema import LogSistema
+from app.models.conversacion import Conversacion
+from app.models.mensaje_conversacion import MensajeConversacion
 
 __all__ = [
     "Ubicacion",
@@ -22,4 +24,6 @@ __all__ = [
     "Alerta",
     "Usuario",
     "LogSistema",
+    "Conversacion",
+    "MensajeConversacion",
 ]
