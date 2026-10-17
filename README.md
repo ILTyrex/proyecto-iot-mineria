@@ -1,7 +1,7 @@
 # API + Base de Datos — Monitoreo de Calidad del Aire (IoT)
 
 Este proyecto cubre la **Fase 2** del parcial integrador: API REST con
-arquitectura POO + PostgreSQL/TimescaleDB con 8 tablas relacionadas.
+arquitectura POO + PostgreSQL/TimescaleDB con 10 tablas relacionadas.
 
 Sensores del circuito: **DHT22** (temperatura/humedad, pin GPIO4) y
 **MQ-135** (calidad del aire, pines GPIO34/35), LCD I2C (GPIO21/22).
@@ -11,22 +11,23 @@ Sensores del circuito: **DHT22** (temperatura/humedad, pin GPIO4) y
 ```text
 app/
   core/          -> configuración y conexión a la base de datos (config.py, database.py, security.py)
-  models/        -> 8 tablas ORM (SQLAlchemy) y sus relaciones
+  models/        -> tablas ORM (SQLAlchemy) y sus relaciones
   schemas/       -> validación de datos de entrada/salida (Pydantic)
   repositories/  -> acceso a datos (patrón Repository, CRUD genérico + específico)
   services/      -> lógica de negocio (clasificación de calidad de aire, alertas)
   routers/       -> endpoints HTTP (capa de presentación de la API)
   main.py        -> arranque de la aplicación FastAPI
 init_db/
-  01_extension.sql            -> habilita la extensión TimescaleDB (automático con Docker)
-  02_hypertable_y_seed.sql    -> convierte "lecturas" en hypertable + datos iniciales
+  schema_completo.sql         -> crea las 10 tablas, la hypertable y los datos iniciales
 esp32_extra/
   envio_api.ino.txt           -> fragmento para que el ESP32 haga POST a la API
 docker-compose.yml / Dockerfile
 ```
 
-## 2. Modelo de datos (8 tablas relacionadas)
+## 2. Modelo de datos (10 tablas relacionadas)
 
+- **ubicaciones**: Lugares físicos asociados a los dispositivos
+- **tipos_alerta**: Catálogo de tipos y severidad de las alertas
 - **dispositivos**: ESP32 registrados (código, ubicación, MAC)
 - **sensores**: Catálogo de sensores (DHT22, MQ-135)
 - **dispositivo_sensores**: Relación N:M dispositivo↔sensor (con el pin usado)
@@ -54,17 +55,27 @@ Esto levanta:
 - `db`: PostgreSQL 15 + TimescaleDB en el puerto 5432
 - `api`: la API FastAPI en el puerto 8000
 
-La primera vez que arranca la API, se crean las tablas automáticamente
-(`Base.metadata.create_all`). Después, aplica el script que crea el
-hypertable y los datos iniciales (niveles de calidad, sensores, y el
-dispositivo `ESP32-G3` de ejemplo):
+En una base de datos nueva, Docker ejecuta `init_db/schema_completo.sql`
+automáticamente al inicializar el volumen. El script crea las tablas,
+convierte `lecturas` en hypertable y carga los datos iniciales (incluido
+el dispositivo `ESP32-G3` de ejemplo). Para aplicarlo manualmente:
 
 ```bash
+<<<<<<< HEAD
 docker exec -i calidad_aire_db psql -U postgres -d calidad_aire_db < init_db/02_hypertable_y_seed.sql
 docker exec -i calidad_aire_db psql -U postgres -d calidad_aire_db < init_db/03_seed_lecturas_demo.sql
 ```
 
 El script de demostración agrega lecturas sintéticas hasta completar al menos 3.000 registros, repartidas entre dos dispositivos de ejemplo; si la tabla ya supera ese mínimo, no agrega filas.
+=======
+docker exec -i calidad_aire_db psql -U postgres -d calidad_aire_db < init_db/schema_completo.sql
+```
+
+La inicialización automática de Docker solo se ejecuta con un volumen de
+base de datos vacío. Si ya tienes uno con tablas, no ejecutes el script
+sin revisar el bloque opcional para borrar tablas antiguas: contiene
+comandos que eliminan datos.
+>>>>>>> 162465003aaf0425ad70a6aa310faa037fc62e1f
 
 Verifica que quedó todo bien:
 
@@ -85,21 +96,25 @@ pip install -r requirements.txt
 
 cp .env.example .env            # y edita los valores de conexión
 
-# Crea la base de datos y habilita la extensión (una sola vez)
+# Crea la base de datos (una sola vez)
 psql -U postgres -c "CREATE DATABASE calidad_aire_db;"
-psql -U postgres -d calidad_aire_db -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
 
+# Crea la extensión, las tablas, la hypertable y los datos iniciales
+psql -U postgres -d calidad_aire_db -f init_db/schema_completo.sql
+
+# Luego arranca la API
 uvicorn app.main:app --reload
+<<<<<<< HEAD
 # En otra terminal, una vez que las tablas ya existen:
 psql -U postgres -d calidad_aire_db -f init_db/02_hypertable_y_seed.sql
 psql -U postgres -d calidad_aire_db -f init_db/03_seed_lecturas_demo.sql
+=======
+>>>>>>> 162465003aaf0425ad70a6aa310faa037fc62e1f
 ```
 
-> Nota: si no tienes TimescaleDB instalado localmente, puedes omitir el
-> `CREATE EXTENSION` y la línea `create_hypertable(...)` del script —
-> la API funciona igual sobre PostgreSQL normal, solo pierdes las
-> optimizaciones de series de tiempo (compresión, particionado
-> automático) que pide el enunciado.
+> El script requiere TimescaleDB. Si solo tienes PostgreSQL, la API puede
+> funcionar sin la extensión si creas las tablas por SQLAlchemy, pero no
+> puedes ejecutar este script completo ni crear la hypertable.
 
 ## 5. Probar el endpoint que usará el ESP32
 
@@ -207,14 +222,21 @@ Es la única opción gratuita que da la extensión **TimescaleDB real**
 2. Crea un "service" nuevo (Postgres + TimescaleDB), plan gratuito.
 3. Copia los datos de conexión que te da (host, puerto, usuario,
    password, nombre de la base) — reemplazan los valores de `.env`.
-4. Corre localmente (una sola vez, contra esa base ya en la nube):
+4. Ejecuta el script una sola vez contra esa base ya en la nube para
+   crear las tablas, la hypertable y los datos iniciales:
 
    ```bash
-   uvicorn app.main:app --reload   # crea las tablas contra Tiger Cloud
-   psql "postgresql://usuario:password@host:puerto/basededatos" -f init_db/02_hypertable_y_seed.sql
+   # Ejecuta el script antes de arrancar la API
+   psql "postgresql://usuario:password@host:puerto/basededatos" -f init_db/schema_completo.sql
    ```
 
+<<<<<<< HEAD
 ### 11.2 API → Render (plan gratuito)
+=======
+   Después configura la conexión de la API a Tiger Cloud y arráncala.
+
+### 10.2 API → Render (plan gratuito)
+>>>>>>> 162465003aaf0425ad70a6aa310faa037fc62e1f
 
 1. Sube este contenido a la carpeta `api/` de tu repo de GitHub (ver
    sección 1 más abajo) y haz push a `main`.
