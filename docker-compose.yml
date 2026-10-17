@@ -37,5 +37,21 @@ services:
     ports:
       - "8000:8000"
 
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: calidad_aire_langflow
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      LANGFLOW_COMPONENTS_PATH: /app/custom_components
+      SENSOR_API_URL: http://api:8000
+    ports:
+      - "127.0.0.1:7860:7860"
+    volumes:
+      - ./langflow/custom_components:/app/custom_components:ro
+      - langflow_data:/app/data
+
 volumes:
   pgdata:
+  langflow_data:

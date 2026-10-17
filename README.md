@@ -61,7 +61,10 @@ dispositivo `ESP32-G3` de ejemplo):
 
 ```bash
 docker exec -i calidad_aire_db psql -U postgres -d calidad_aire_db < init_db/02_hypertable_y_seed.sql
+docker exec -i calidad_aire_db psql -U postgres -d calidad_aire_db < init_db/03_seed_lecturas_demo.sql
 ```
+
+El script de demostración agrega lecturas sintéticas hasta completar al menos 3.000 registros, repartidas entre dos dispositivos de ejemplo; si la tabla ya supera ese mínimo, no agrega filas.
 
 Verifica que quedó todo bien:
 
@@ -89,6 +92,7 @@ psql -U postgres -d calidad_aire_db -c "CREATE EXTENSION IF NOT EXISTS timescale
 uvicorn app.main:app --reload
 # En otra terminal, una vez que las tablas ya existen:
 psql -U postgres -d calidad_aire_db -f init_db/02_hypertable_y_seed.sql
+psql -U postgres -d calidad_aire_db -f init_db/03_seed_lecturas_demo.sql
 ```
 
 > Nota: si no tienes TimescaleDB instalado localmente, puedes omitir el
@@ -157,7 +161,33 @@ Para ejecutarla, configura `API_URL` en el entorno o en
 streamlit run streamlit_app/eda_app.py
 ```
 
-## 9. Seguridad (nivel parcial)
+## 9. Agente analítico con Langflow
+
+El proyecto incluye Langflow en `http://localhost:7860` y una herramienta
+personalizada que consulta todas las páginas de la API para calcular
+estadísticas, comparaciones entre dispositivos/periodos y tendencias diarias.
+El detalle de configuración del flujo, las preguntas de prueba y la conexión
+con la interfaz Streamlit está en [docs/langflow_agent.md](docs/langflow_agent.md).
+
+Para iniciar API, base de datos y Langflow:
+
+```bash
+docker compose up -d --build
+```
+
+En Langflow crea el flujo `Chat Input -> Agent -> Chat Output`, conecta el
+componente `SensorAnalytics` al puerto `Tools` del Agent y configura un modelo
+Groq con capacidad de uso de herramientas. El Flow ID del flujo exportado está
+configurado como valor predeterminado; si usas otro flujo, define
+`LANGFLOW_FLOW_ID` en `.env`. Abre la página `Agente` de Streamlit: llama a
+Langflow y conserva el `session_id` para el historial del chat.
+
+Las claves del proveedor se configuran en Langflow y nunca deben guardarse en
+el flujo exportado, el repositorio ni este README. La colección Qdrant y los
+embeddings no intervienen en agregaciones numéricas; las métricas se calculan
+directamente sobre lecturas consultadas desde la API.
+
+## 10. Seguridad (nivel parcial)
 
 El endpoint `POST /api/lecturas/` exige el header `X-API-Key` para
 evitar que cualquiera inyecte datos falsos. Es una protección básica,
@@ -165,9 +195,9 @@ suficiente para el alcance del parcial; no reemplaza autenticación de
 usuario (la tabla `usuarios` queda lista para eso más adelante si el
 proyecto lo requiere).
 
-## 10. Despliegue en la nube (requerido por el profesor)
+## 11. Despliegue en la nube (requerido por el profesor)
 
-### 10.1 Base de datos → Tiger Cloud (antes "Timescale Cloud")
+### 11.1 Base de datos → Tiger Cloud (antes "Timescale Cloud")
 
 Es la única opción gratuita que da la extensión **TimescaleDB real**
 (Render/Railway/Supabase solo dan Postgres plano, sin esa extensión).
@@ -184,7 +214,7 @@ Es la única opción gratuita que da la extensión **TimescaleDB real**
    psql "postgresql://usuario:password@host:puerto/basededatos" -f init_db/02_hypertable_y_seed.sql
    ```
 
-### 10.2 API → Render (plan gratuito)
+### 11.2 API → Render (plan gratuito)
 
 1. Sube este contenido a la carpeta `api/` de tu repo de GitHub (ver
    sección 1 más abajo) y haz push a `main`.
