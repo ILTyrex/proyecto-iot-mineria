@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from textwrap import shorten
 from uuid import uuid4
 
 import requests
@@ -85,6 +86,15 @@ def save_message(conversation_id: str, role: str, content: str) -> None:
     )
 
 
+def open_conversation(conversation_id: str) -> None:
+    stored_messages = load_conversation(conversation_id)
+    st.session_state.langflow_session_id = conversation_id
+    st.session_state.agent_messages = [
+        {"role": message["role"], "content": message["content"]}
+        for message in stored_messages
+    ]
+
+
 def ask_agent(question: str) -> str:
     langflow_url = setting("LANGFLOW_URL", "http://localhost:7860").rstrip("/")
     flow_id = setting("LANGFLOW_FLOW_ID", DEFAULT_FLOW_ID)
@@ -118,57 +128,57 @@ if "agent_messages" not in st.session_state:
     st.session_state.agent_messages = []
 
 with st.sidebar:
-    st.subheader("Ejemplos")
-    st.markdown(
-        "- ¿Cuál fue el promedio de CO₂ y cuál fue el máximo?\n"
-        "- Compara los promedios del primer y segundo periodo.\n"
-        "- ¿Qué tendencia tuvo la temperatura?\n"
-        "- ¿Qué dispositivo registró más lecturas?"
-    )
-    if st.button("Nueva conversación", icon="🔄"):
+    suggested_question = None
+    if st.button("Nueva conversación", icon=":material/edit_square:", width="stretch"):
         st.session_state.langflow_session_id = uuid4().hex
         st.session_state.agent_messages = []
         st.rerun()
 
+    st.divider()
+    st.caption("Historial")
     try:
         saved_conversations = load_conversations()
     except (requests.RequestException, ValueError) as error:
         saved_conversations = []
-        st.warning(f"No se pudo cargar el historial: {error}")
+        st.warning(f"No se pudo cargar el historial: {error}", icon=":material/cloud_off:")
 
-    if saved_conversations:
-        conversation_labels = {
-            item["id"]: f'{item["titulo"]} ({item["cantidad_mensajes"]})'
-            for item in saved_conversations
-        }
-        current_id = st.session_state.langflow_session_id
-        conversation_ids = [item["id"] for item in saved_conversations]
-        if current_id not in conversation_ids:
-            conversation_ids.insert(0, current_id)
-            conversation_labels[current_id] = "Conversación nueva"
-        selected_id = st.selectbox(
-            "Conversaciones guardadas",
-            options=conversation_ids,
-            index=conversation_ids.index(current_id),
-            format_func=lambda conversation_id: conversation_labels[conversation_id],
-        )
-        if selected_id != current_id:
+    current_id = st.session_state.langflow_session_id
+    for conversation in saved_conversations:
+        conversation_id = conversation["id"]
+        title = conversation["titulo"].strip() or "Conversación nueva"
+        if st.button(
+            shorten(title, width=38, placeholder="..."),
+            key=f"conversation_{conversation_id}",
+            type="primary" if conversation_id == current_id else "secondary",
+            width="stretch",
+            help=title,
+        ) and conversation_id != current_id:
             try:
-                stored_messages = load_conversation(selected_id)
-                st.session_state.langflow_session_id = selected_id
-                st.session_state.agent_messages = [
-                    {"role": message["role"], "content": message["content"]}
-                    for message in stored_messages
-                ]
+                open_conversation(conversation_id)
                 st.rerun()
             except (requests.RequestException, ValueError) as error:
                 st.error(f"No se pudo abrir la conversación: {error}")
+
+    st.divider()
+    with st.expander("Preguntas de ejemplo", expanded=not st.session_state.agent_messages):
+        suggestions = {
+            "Promedio y máximo de CO₂": "¿Cuál fue el promedio de CO₂ y cuál fue el máximo?",
+            "Comparar periodos": "Compara los promedios del primer y segundo periodo.",
+            "Tendencia de temperatura": "¿Qué tendencia tuvo la temperatura?",
+            "Dispositivo con más lecturas": "¿Qué dispositivo registró más lecturas?",
+        }
+        for index, (label, prompt) in enumerate(suggestions.items()):
+            if st.button(label, key=f"suggestion_{index}", width="stretch"):
+                suggested_question = prompt
 
 for message in st.session_state.agent_messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
 question = st.chat_input("Pregunta sobre las lecturas, comparaciones o tendencias...")
+if suggested_question:
+    question = suggested_question
+
 if question:
     with st.chat_message("user"):
         st.markdown(question)
