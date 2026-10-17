@@ -32,7 +32,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_SSLMODE: disable
-      API_KEY: clave-secreta-esp32-2026
+      API_KEY: ${API_KEY:?Define API_KEY en .env}
     ports:
       - "8000:8000"
 

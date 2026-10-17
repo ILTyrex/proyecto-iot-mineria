@@ -197,6 +197,13 @@ configurado como valor predeterminado; si usas otro flujo, define
 `LANGFLOW_FLOW_ID` en `.env`. Abre la página `Agente` de Streamlit: llama a
 Langflow y conserva el `session_id` para el historial del chat.
 
+Cada pregunta y respuesta se guarda en `mensajes_conversacion`, vinculada a
+`conversaciones`. La página lista los chats anteriores en el panel lateral y
+permite reabrirlos. La API protege estas operaciones con `X-API-Key`; configura
+un único `API_KEY` en `.env` para que Compose y Streamlit usen el mismo valor.
+Tras cambiar esa clave o el código de la API, aplica los cambios con
+`docker compose up -d --build api`.
+
 Las claves del proveedor se configuran en Langflow y nunca deben guardarse en
 el flujo exportado, el repositorio ni este README. La colección Qdrant y los
 embeddings no intervienen en agregaciones numéricas; las métricas se calculan
@@ -204,9 +211,9 @@ directamente sobre lecturas consultadas desde la API.
 
 ## 10. Seguridad (nivel parcial)
 
-El endpoint `POST /api/lecturas/` exige el header `X-API-Key` para
-evitar que cualquiera inyecte datos falsos. Es una protección básica,
-suficiente para el alcance del parcial; no reemplaza autenticación de
+Los endpoints de escritura y consulta de conversaciones exigen el header
+`X-API-Key`; `POST /api/lecturas/` también lo exige para evitar que cualquiera
+inyecte datos falsos. Es una protección básica, suficiente para el alcance del parcial; no reemplaza autenticación de
 usuario (la tabla `usuarios` queda lista para eso más adelante si el
 proyecto lo requiere).
 

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import *  # noqa: F401,F403  (registra todos los modelos en Base.metadata)
-from app.routers import dispositivos, sensores, lecturas, alertas
+from app.routers import dispositivos, sensores, lecturas, alertas, conversaciones
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,6 +32,7 @@ app.include_router(dispositivos.router)
 app.include_router(sensores.router)
 app.include_router(lecturas.router)
 app.include_router(alertas.router)
+app.include_router(conversaciones.router)
 
 
 @app.on_event("startup")

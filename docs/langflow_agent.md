@@ -7,6 +7,7 @@
 - **Modelo:** proveedor Groq configurado dentro de Langflow con un modelo que admita llamadas a herramientas.
 - **Chat:** Playground de Langflow en `http://localhost:7860`.
 - **Aplicativo web:** pagina `Agente` de Streamlit; invoca el endpoint `/api/v1/run/{FLOW_ID}` y mantiene una sesion de conversacion.
+- **Persistencia:** Streamlit guarda cada mensaje en `mensajes_conversacion`, agrupado por el ID de `conversaciones`; los chats guardados se pueden volver a abrir desde la barra lateral.
 
 ## Preparacion
 
@@ -17,7 +18,10 @@
 5. En el menu de componentes de datos/herramientas agrega `Sensor Analytics` y conecta su salida de herramienta al puerto `Tools` del Agent.
 6. En las instrucciones del Agent pega el texto de abajo. Prueba el flujo en el Playground. El Flow ID incluido en el JSON de `Agente simple` ya está configurado como predeterminado en Streamlit.
 7. Si usas otro flujo, define `LANGFLOW_FLOW_ID=<id-del-flujo>` en `.env`. Si tu instancia exige autenticacion, crea una clave nueva y configura `LANGFLOW_API_KEY=<clave-de-langflow>` localmente.
-8. Ejecuta `streamlit run streamlit_app/eda_app.py`; la navegacion incluye las paginas EDA y Agente.
+8. Configura un unico `API_KEY` en `.env`; Compose lo usa para proteger la API y Streamlit lo envia al guardar/leer conversaciones.
+9. Ejecuta `streamlit run streamlit_app/eda_app.py`; la navegacion incluye las paginas EDA y Agente.
+
+Si cambias el codigo de la API, reconstruye el servicio con `docker compose up -d --build api`. Los mensajes se guardan al enviar cada turno, incluso si una solicitud posterior a Langflow falla.
 
 ## Instrucciones del Agent
 
